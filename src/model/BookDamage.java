@@ -9,6 +9,7 @@ public class BookDamage implements Serializable {
     private Date detectedDate;
     private float fineAmount;
     private Damage damage;
+    private ReturnedBook returnedBook;
 
     public BookDamage() {
     }
@@ -51,5 +52,13 @@ public class BookDamage implements Serializable {
 
     public void setDamage(Damage damage) {
         this.damage = damage;
+    }
+
+    public ReturnedBook getReturnedBook() {
+        return returnedBook;
+    }
+
+    public void setReturnedBook(ReturnedBook returnedBook) {
+        this.returnedBook = returnedBook;
     }
 }

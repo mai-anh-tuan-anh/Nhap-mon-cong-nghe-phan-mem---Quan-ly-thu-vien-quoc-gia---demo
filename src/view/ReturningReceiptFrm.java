@@ -15,14 +15,16 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
     private Reader reader;
     private BorrowingReceipt borrowingReceipt;
     private ReturningReceipt returningReceipt;
+    private ArrayList<BookDamage> listBookDamage; // Managed separately
     private JButton btnSubmit, btnBack, btnMainPage;
     private JLabel lblTotalFine, lblDeposit;
     private JTable tblUnreturned;
 
-    public ReturningReceiptFrm(BorrowingReceipt br, ReturningReceipt rr) {
+    public ReturningReceiptFrm(BorrowingReceipt br, ReturningReceipt rr, ArrayList<BookDamage> listBD) {
         super("Returning Receipt");
         this.borrowingReceipt = br;
         this.returningReceipt = rr;
+        this.listBookDamage = listBD;
         this.user = rr.getUser();
         this.reader = rr.getReader();
         
@@ -71,7 +73,12 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
         btnMainPage = new JButton("Back to Main Page"); btnMainPage.setBounds(320, y, 150, 30);
         btnMainPage.addActionListener(e -> { new LibrarianHomeFrm(user).setVisible(true); dispose(); }); panel.add(btnMainPage);
         btnBack = new JButton("Back"); btnBack.setBounds(490, y, 100, 30);
-        btnBack.addActionListener(e -> { new BookReturnFrm(borrowingReceipt, returningReceipt).setVisible(true); dispose(); }); panel.add(btnBack);
+        btnBack.addActionListener(e -> { 
+            BookReturnFrm brFrm = new BookReturnFrm(borrowingReceipt, returningReceipt);
+            brFrm.listBookDamage = listBookDamage;
+            brFrm.setVisible(true); 
+            dispose(); 
+        }); panel.add(btnBack);
 
         add(panel);
 
@@ -105,13 +112,24 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
                 lateData.add(new Object[]{lateData.size()+1, rb.getBorrowedBook().getBook().getCode(), rb.getBorrowedBook().getBook().getBarcode(), rb.getBorrowedBook().getBook().getName(), rb.getBorrowedBook().getBook().getAuthor(), rb.getBorrowedBook().getBorrowDate(), rb.getBorrowedBook().getDueDate(), rb.getReturnDate(), rb.getBorrowedBook().getPrice(), lf});
                 totalFine += lf;
             }
-            if (!rb.getListBookDamage().isEmpty()) {
-                StringBuilder ds = new StringBuilder(); float df = 0;
-                for (BookDamage bd : rb.getListBookDamage()) { df += bd.getFineAmount(); ds.append(bd.getDamage().getName()).append("; "); }
-                damagedData.add(new Object[]{damagedData.size()+1, rb.getBorrowedBook().getBook().getCode(), rb.getBorrowedBook().getBook().getBarcode(), rb.getBorrowedBook().getBook().getName(), rb.getBorrowedBook().getBook().getAuthor(), rb.getBorrowedBook().getPrice(), ds.toString(), df});
-                totalFine += df;
-            }
         }
+        for (BookDamage bd : listBookDamage) {
+            ReturnedBook rb = bd.getReturnedBook();
+            boolean exists = false;
+            for(Object[] row : damagedData) {
+                if(row[1].equals(rb.getBorrowedBook().getBook().getCode())) {
+                    row[6] = row[6].toString() + bd.getDamage().getName() + "; ";
+                    row[7] = (float)row[7] + bd.getFineAmount();
+                    exists = true;
+                    break;
+                }
+            }
+            if(!exists) {
+                damagedData.add(new Object[]{damagedData.size()+1, rb.getBorrowedBook().getBook().getCode(), rb.getBorrowedBook().getBook().getBarcode(), rb.getBorrowedBook().getBook().getName(), rb.getBorrowedBook().getBook().getAuthor(), rb.getBorrowedBook().getPrice(), bd.getDamage().getName() + "; ", bd.getFineAmount()});
+            }
+            totalFine += bd.getFineAmount();
+        }
+
         tblLate.setModel(new DefaultTableModel(lateData.toArray(new Object[0][0]), new String[]{"Order", "Book Code", "Bar Code", "Name", "Author", "Borrowing Date", "Due Date", "Returning Date", "Cover Price", "Fine Amount (20%)"}));
         tblDamaged.setModel(new DefaultTableModel(damagedData.toArray(new Object[0][0]), new String[]{"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Damaged Status Now", "Fine Amount"}));
         lblTotalFine.setText(totalFine + " VND"); lblDeposit.setText(totalDeposit + " VND");
@@ -120,7 +138,7 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btnSubmit) {
-            if (new ReturningReceiptDAO().updateReturningReceipt(returningReceipt)) {
+            if (new ReturningReceiptDAO().updateReturningReceipt(returningReceipt, listBookDamage)) {
                 JOptionPane.showMessageDialog(this, "Book return processed successfully!");
                 new LibrarianHomeFrm(user).setVisible(true); dispose();
             } else { JOptionPane.showMessageDialog(this, "Failed to process book return!"); }

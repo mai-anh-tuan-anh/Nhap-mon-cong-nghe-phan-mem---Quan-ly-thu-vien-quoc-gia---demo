@@ -68,18 +68,22 @@ public class ReaderDetailFrm extends JFrame implements ActionListener {
             tblBorrowed.setModel(new DefaultTableModel(dataB, colsB));
         } else { tblBorrowed.setModel(new DefaultTableModel(null, colsB)); }
 
-        ArrayList<ReturningReceipt> listReturningReceipt = new ReturningReceiptDAO().getReturnedBook(reader);
+        ReturningReceiptDAO rrd = new ReturningReceiptDAO();
+        ArrayList<ReturningReceipt> listReturningReceipt = rrd.getReturningReceipt(reader);
         String[] colsR = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine"};
         int totalRows = 0; for (ReturningReceipt rr : listReturningReceipt) totalRows += rr.getListReturnedBook().size();
         Object[][] dataR = new Object[totalRows][9];
         int k = 0;
         for (ReturningReceipt rr : listReturningReceipt) {
+            ArrayList<BookDamage> damagesForReceipt = rrd.getBookDamagesByReceipt(rr.getId());
             for (ReturnedBook rb : rr.getListReturnedBook()) {
                 dataR[k][0] = k + 1; dataR[k][1] = rb.getBorrowedBook().getBook().getCode(); dataR[k][2] = rb.getBorrowedBook().getBook().getBarcode();
                 dataR[k][3] = rb.getBorrowedBook().getBook().getName(); dataR[k][4] = rb.getBorrowedBook().getBook().getAuthor(); dataR[k][5] = rb.getBorrowedBook().getPrice() + " VND";
                 dataR[k][6] = sdf.format(rb.getBorrowedBook().getDueDate()); dataR[k][7] = sdf.format(rb.getReturnDate());
                 float fine = (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) ? rb.getBorrowedBook().getPrice() * 0.2f : 0;
-                for (BookDamage bd : rb.getListBookDamage()) fine += bd.getFineAmount();
+                for (BookDamage bd : damagesForReceipt) {
+                    if (bd.getReturnedBook().getId() == rb.getId()) fine += bd.getFineAmount();
+                }
                 dataR[k][8] = fine + " VND"; k++;
             }
         }

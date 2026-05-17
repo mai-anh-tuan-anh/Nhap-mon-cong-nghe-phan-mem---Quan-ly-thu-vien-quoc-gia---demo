@@ -65,7 +65,9 @@ public class BookDamageFrm extends JDialog implements ActionListener {
             Damage d = listDamage.get(i);
             data[i][0] = d.getId(); data[i][1] = d.getName(); data[i][2] = d.getFineRate();
             boolean selected = false;
-            for (BookDamage bd : returnedBook.getListBookDamage()) { if (bd.getDamage().getId() == d.getId()) { selected = true; break; } }
+            for (BookDamage bd : parent.listBookDamage) {
+                if (bd.getReturnedBook() == rb && bd.getDamage().getId() == d.getId()) { selected = true; break; }
+            }
             data[i][3] = selected;
         }
         tblDamage.setModel(new DefaultTableModel(data, columns) {
@@ -77,7 +79,14 @@ public class BookDamageFrm extends JDialog implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btnAccept) {
-            returnedBook.getListBookDamage().clear();
+            // Remove old damages for this book from parent's separate list
+            ArrayList<BookDamage> toRemove = new ArrayList<>();
+            for (BookDamage bd : parent.listBookDamage) {
+                if (bd.getReturnedBook() == returnedBook) toRemove.add(bd);
+            }
+            parent.listBookDamage.removeAll(toRemove);
+
+            // Add newly selected damages
             for (int i = 0; i < listDamage.size(); i++) {
                 Boolean selected = (Boolean) tblDamage.getValueAt(i, 3);
                 if (selected != null && selected) {
@@ -86,10 +95,27 @@ public class BookDamageFrm extends JDialog implements ActionListener {
                     bd.setDamage(d); bd.setDetectedDate(new Date());
                     bd.setFineAmount(returnedBook.getBorrowedBook().getPrice() * d.getFineRate() / 100);
                     bd.setNote(d.getName() + " Damage");
-                    returnedBook.getListBookDamage().add(bd);
+                    bd.setReturnedBook(returnedBook);
+                    parent.listBookDamage.add(bd);
                 }
             }
-            parent.updateScannedTable();
+            
+            // updateScannedTable inline for parent
+            String[] columnsS = {"Order", "Book Code", "Bar Code", "Name", "Author", "Due Date", "Returning Date", "Cover Price", "Damage Status Now"};
+            Object[][] dataS = new Object[parent.returningReceipt.getListReturnedBook().size()][9];
+            for (int i = 0; i < parent.returningReceipt.getListReturnedBook().size(); i++) {
+                ReturnedBook rb = parent.returningReceipt.getListReturnedBook().get(i);
+                dataS[i][0] = i + 1; dataS[i][1] = rb.getBorrowedBook().getBook().getCode(); dataS[i][2] = rb.getBorrowedBook().getBook().getBarcode();
+                dataS[i][3] = rb.getBorrowedBook().getBook().getName(); dataS[i][4] = rb.getBorrowedBook().getBook().getAuthor();
+                dataS[i][5] = rb.getBorrowedBook().getDueDate(); dataS[i][6] = rb.getReturnDate(); dataS[i][7] = rb.getBorrowedBook().getPrice() + " VND";
+                int damageCount = 0;
+                for (BookDamage bd : parent.listBookDamage) { if (bd.getReturnedBook() == rb) damageCount++; }
+                dataS[i][8] = damageCount == 0 ? "OK" : damageCount + " damage(s)";
+            }
+            parent.tblScanned.setModel(new DefaultTableModel(dataS, columnsS) { @Override public boolean isCellEditable(int row, int col) { return col == 8; } });
+            parent.tblScanned.getColumnModel().getColumn(8).setCellRenderer(new ButtonRenderer());
+            parent.tblScanned.getColumnModel().getColumn(8).setCellEditor(new ButtonEditor(new JCheckBox(), parent));
+            
             dispose();
         }
     }

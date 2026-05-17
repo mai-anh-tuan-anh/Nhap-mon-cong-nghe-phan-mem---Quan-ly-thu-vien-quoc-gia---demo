@@ -12,91 +12,24 @@ public class ReturningReceiptDAO extends DAO {
         super();
     }
 
-    public ArrayList<ReturningReceipt> getReturnedBook(Reader r) {
+    public ArrayList<ReturningReceipt> getReturningReceipt(Reader r) {
         ArrayList<ReturningReceipt> result = new ArrayList<>();
-        String sql = "SELECT rr.*, rb.id as rbId, rb.returnDate, " +
-                     "bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
-                     "b.id as bId, b.name as bName, b.code, b.barcode as bBarcode, b.author as bAuthor, " +
-                     "bd.id as bdId, bd.note as bdNote, bd.detectedDate, bd.fineAmount, " +
-                     "d.id as dId, d.name as dName, d.fineRate " +
-                     "FROM tblReturningReceipt rr " +
-                     "JOIN tblReturnedBook rb ON rr.id = rb.tblReturningReceiptId " +
-                     "JOIN tblBorrowedBook bb ON rb.tblBorrowedBookId = bb.id " +
-                     "JOIN tblBook b ON bb.tblBookId = b.id " +
-                     "LEFT JOIN tblBookDamage bd ON rb.id = bd.tblReturnedBookId " +
-                     "LEFT JOIN tblDamage d ON bd.tblDamageId = d.id " +
-                     "WHERE rr.tblReaderId = ? " +
-                     "ORDER BY rr.id DESC, rb.id ASC, bd.id ASC";
+        String sql = "SELECT * FROM tblReturningReceipt WHERE tblReaderId = ? ORDER BY createdDate DESC";
         try {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, r.getId());
             ResultSet rs = ps.executeQuery();
-
-            ReturningReceipt currentRR = null;
-            ReturnedBook currentRB = null;
-            
             while (rs.next()) {
-                int rrId = rs.getInt("id");
-                if (currentRR == null || currentRR.getId() != rrId) {
-                    currentRR = new ReturningReceipt();
-                    currentRR.setId(rrId);
-                    currentRR.setBarcode(rs.getString("barcode"));
-                    currentRR.setNote(rs.getString("note"));
-                    currentRR.setCreatedDate(rs.getTimestamp("createdDate"));
-                    currentRR.setReader(r);
-                    result.add(currentRR);
-                    currentRB = null; // Reset RB tracker when RR changes
-                }
-
-                int rbId = rs.getInt("rbId");
-                if (currentRB == null || currentRB.getId() != rbId) {
-                    currentRB = new ReturnedBook();
-                    currentRB.setId(rbId);
-                    currentRB.setReturnDate(rs.getDate("returnDate"));
-                    
-                    BorrowedBook bb = new BorrowedBook();
-                    bb.setId(rs.getInt("bbId"));
-                    bb.setBorrowDate(rs.getDate("borrowDate"));
-                    bb.setDueDate(rs.getDate("dueDate"));
-                    bb.setPrice(rs.getFloat("bbPrice"));
-                    
-                    Book b = new Book();
-                    b.setId(rs.getInt("bId"));
-                    b.setName(rs.getString("bName"));
-                    b.setCode(rs.getString("code"));
-                    b.setBarcode(rs.getString("bBarcode"));
-                    b.setAuthor(rs.getString("bAuthor"));
-                    bb.setBook(b);
-                    currentRB.setBorrowedBook(bb);
-
-                    currentRR.getListReturnedBook().add(currentRB);
-                }
-
-                int bdId = rs.getInt("bdId");
-                if (bdId > 0) { // There is a damage record
-                    boolean exists = false;
-                    for(BookDamage existingBD : currentRB.getListBookDamage()){
-                        if(existingBD.getId() == bdId){
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if(!exists){
-                        BookDamage bd = new BookDamage();
-                        bd.setId(bdId);
-                        bd.setNote(rs.getString("bdNote"));
-                        bd.setDetectedDate(rs.getDate("detectedDate"));
-                        bd.setFineAmount(rs.getFloat("fineAmount"));
-                        
-                        Damage d = new Damage();
-                        d.setId(rs.getInt("dId"));
-                        d.setName(rs.getString("dName"));
-                        d.setFineRate(rs.getFloat("fineRate"));
-                        bd.setDamage(d);
-                        
-                        currentRB.getListBookDamage().add(bd);
-                    }
-                }
+                ReturningReceipt rr = new ReturningReceipt();
+                rr.setId(rs.getInt("id"));
+                rr.setBarcode(rs.getString("barcode"));
+                rr.setNote(rs.getString("note"));
+                rr.setCreatedDate(rs.getTimestamp("createdDate"));
+                rr.setReader(r);
+                
+                // Fetch books for this receipt
+                rr.setListReturnedBook(getReturnedBooksByReceipt(rr.getId()));
+                result.add(rr);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -104,7 +37,81 @@ public class ReturningReceiptDAO extends DAO {
         return result;
     }
 
-    public boolean updateReturningReceipt(ReturningReceipt rr) {
+    private ArrayList<ReturnedBook> getReturnedBooksByReceipt(int receiptId) {
+        ArrayList<ReturnedBook> result = new ArrayList<>();
+        String sql = "SELECT rb.*, bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
+                     "b.id as bId, b.name as bName, b.code, b.barcode as bBarcode, b.author as bAuthor " +
+                     "FROM tblReturnedBook rb " +
+                     "JOIN tblBorrowedBook bb ON rb.tblBorrowedBookId = bb.id " +
+                     "JOIN tblBook b ON bb.tblBookId = b.id " +
+                     "WHERE rb.tblReturningReceiptId = ?";
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, receiptId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                ReturnedBook rb = new ReturnedBook();
+                rb.setId(rs.getInt("id"));
+                rb.setReturnDate(rs.getDate("returnDate"));
+                
+                BorrowedBook bb = new BorrowedBook();
+                bb.setId(rs.getInt("bbId"));
+                bb.setBorrowDate(rs.getDate("borrowDate"));
+                bb.setDueDate(rs.getDate("dueDate"));
+                bb.setPrice(rs.getFloat("bbPrice"));
+                
+                Book b = new Book();
+                b.setId(rs.getInt("bId"));
+                b.setName(rs.getString("bName"));
+                b.setCode(rs.getString("code"));
+                b.setBarcode(rs.getString("bBarcode"));
+                b.setAuthor(rs.getString("bAuthor"));
+                bb.setBook(b);
+                rb.setBorrowedBook(bb);
+                result.add(rb);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public ArrayList<BookDamage> getBookDamagesByReceipt(int receiptId) {
+        ArrayList<BookDamage> result = new ArrayList<>();
+        String sql = "SELECT bd.*, rb.id as rbId, d.id as dId, d.name as dName, d.fineRate " +
+                     "FROM tblBookDamage bd " +
+                     "JOIN tblReturnedBook rb ON bd.tblReturnedBookId = rb.id " +
+                     "JOIN tblDamage d ON bd.tblDamageId = d.id " +
+                     "WHERE rb.tblReturningReceiptId = ?";
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, receiptId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                BookDamage bd = new BookDamage();
+                bd.setId(rs.getInt("id"));
+                bd.setNote(rs.getString("note"));
+                bd.setDetectedDate(rs.getDate("detectedDate"));
+                bd.setFineAmount(rs.getFloat("fineAmount"));
+                
+                Damage d = new Damage();
+                d.setId(rs.getInt("dId"));
+                d.setName(rs.getString("dName"));
+                d.setFineRate(rs.getFloat("fineRate"));
+                bd.setDamage(d);
+                
+                ReturnedBook rb = new ReturnedBook();
+                rb.setId(rs.getInt("rbId"));
+                bd.setReturnedBook(rb);
+                result.add(bd);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public boolean updateReturningReceipt(ReturningReceipt rr, ArrayList<BookDamage> listBD) {
         String sqlRR = "INSERT INTO tblReturningReceipt(barcode, note, createdDate, tblReaderId, tblUserId) VALUES(?,?,?,?,?)";
         String sqlRB = "INSERT INTO tblReturnedBook(returnDate, tblReturningReceiptId, tblBorrowedBookId) VALUES(?,?,?)";
         String sqlBD = "INSERT INTO tblBookDamage(note, detectedDate, fineAmount, tblDamageId, tblReturnedBookId) VALUES(?,?,?,?,?)";
@@ -135,17 +142,18 @@ public class ReturningReceiptDAO extends DAO {
                 if (rsRB.next()) {
                     rb.setId(rsRB.getInt(1));
                 }
-
-                for (BookDamage bd : rb.getListBookDamage()) {
-                    PreparedStatement psBD = con.prepareStatement(sqlBD);
-                    psBD.setString(1, bd.getNote());
-                    psBD.setDate(2, new java.sql.Date(bd.getDetectedDate().getTime()));
-                    psBD.setFloat(3, bd.getFineAmount());
-                    psBD.setInt(4, bd.getDamage().getId());
-                    psBD.setInt(5, rb.getId());
-                    psBD.executeUpdate();
-                }
             }
+
+            for (BookDamage bd : listBD) {
+                PreparedStatement psBD = con.prepareStatement(sqlBD);
+                psBD.setString(1, bd.getNote());
+                psBD.setDate(2, new java.sql.Date(bd.getDetectedDate().getTime()));
+                psBD.setFloat(3, bd.getFineAmount());
+                psBD.setInt(4, bd.getDamage().getId());
+                psBD.setInt(5, bd.getReturnedBook().getId());
+                psBD.executeUpdate();
+            }
+            
             con.commit();
         } catch (Exception e) {
             try {
