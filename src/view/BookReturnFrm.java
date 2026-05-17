@@ -17,7 +17,6 @@ public class BookReturnFrm extends JFrame implements ActionListener {
     private Reader reader;
     private BorrowingReceipt borrowingReceipt;
     private ReturningReceipt returningReceipt;
-    private ArrayList<ReturningReceipt> listReturningHistory;
     private JTable tblBorrowed, tblScanned, tblReturnedHistory;
     private JButton btnScan, btnNext, btnBack;
 
@@ -103,49 +102,35 @@ public class BookReturnFrm extends JFrame implements ActionListener {
 
         add(panel);
 
-        loadHistory();
-        updateBorrowedTable();
-        updateScannedTable();
-    }
-
-    private void loadHistory() {
+        // Load History directly in constructor
         ReturningReceiptDAO rrd = new ReturningReceiptDAO();
-        listReturningHistory = rrd.getReturnedBook(reader);
-        updateHistoryTable();
-    }
-
-    private void updateHistoryTable() {
+        ArrayList<ReturningReceipt> listReturningHistory = rrd.getReturnedBook(reader);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine Amount"};
+        String[] columnsHistory = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine Amount"};
         int totalRows = 0;
-        for (ReturningReceipt rr : listReturningHistory) totalRows += rr.getListReturnedBook().size();
-        
-        Object[][] data = new Object[totalRows][9];
+        for (ReturningReceipt rrt : listReturningHistory) totalRows += rrt.getListReturnedBook().size();
+        Object[][] dataHistory = new Object[totalRows][9];
         int k = 0;
-        for (ReturningReceipt rr : listReturningHistory) {
-            for (ReturnedBook rb : rr.getListReturnedBook()) {
-                data[k][0] = k + 1;
-                data[k][1] = rb.getBorrowedBook().getBook().getCode();
-                data[k][2] = rb.getBorrowedBook().getBook().getBarcode();
-                data[k][3] = rb.getBorrowedBook().getBook().getName();
-                data[k][4] = rb.getBorrowedBook().getBook().getAuthor();
-                data[k][5] = rb.getBorrowedBook().getPrice() + " VND";
-                data[k][6] = sdf.format(rb.getBorrowedBook().getDueDate());
-                data[k][7] = sdf.format(rb.getReturnDate());
-                
-                float fine = 0;
-                if (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) {
-                    fine += rb.getBorrowedBook().getPrice() * 0.2f;
-                }
+        for (ReturningReceipt rrt : listReturningHistory) {
+            for (ReturnedBook rb : rrt.getListReturnedBook()) {
+                dataHistory[k][0] = k + 1;
+                dataHistory[k][1] = rb.getBorrowedBook().getBook().getCode();
+                dataHistory[k][2] = rb.getBorrowedBook().getBook().getBarcode();
+                dataHistory[k][3] = rb.getBorrowedBook().getBook().getName();
+                dataHistory[k][4] = rb.getBorrowedBook().getBook().getAuthor();
+                dataHistory[k][5] = rb.getBorrowedBook().getPrice() + " VND";
+                dataHistory[k][6] = sdf.format(rb.getBorrowedBook().getDueDate());
+                dataHistory[k][7] = sdf.format(rb.getReturnDate());
+                float fine = (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) ? rb.getBorrowedBook().getPrice() * 0.2f : 0;
                 for (BookDamage bd : rb.getListBookDamage()) fine += bd.getFineAmount();
-                data[k][8] = fine + " VND";
+                dataHistory[k][8] = fine + " VND";
                 k++;
             }
         }
-        tblReturnedHistory.setModel(new DefaultTableModel(data, columns) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
-        });
+        tblReturnedHistory.setModel(new DefaultTableModel(dataHistory, columnsHistory) { @Override public boolean isCellEditable(int row, int col) { return false; } });
+
+        updateBorrowedTable();
+        updateScannedTable();
     }
 
     private void updateBorrowedTable() {
@@ -155,52 +140,30 @@ public class BookReturnFrm extends JFrame implements ActionListener {
         for (BorrowedBook bb : borrowingReceipt.getListBorrowedBook()) {
             boolean alreadyScanned = false;
             for (ReturnedBook rb : returningReceipt.getListReturnedBook()) {
-                if (rb.getBorrowedBook().getId() == bb.getId()) {
-                    alreadyScanned = true;
-                    break;
-                }
+                if (rb.getBorrowedBook().getId() == bb.getId()) { alreadyScanned = true; break; }
             }
             if (!alreadyScanned) remaining.add(bb);
         }
-
         Object[][] data = new Object[remaining.size()][8];
         for (int i = 0; i < remaining.size(); i++) {
             BorrowedBook bb = remaining.get(i);
-            data[i][0] = i + 1;
-            data[i][1] = bb.getBook().getCode();
-            data[i][2] = bb.getBook().getBarcode();
-            data[i][3] = bb.getBook().getName();
-            data[i][4] = bb.getBook().getAuthor();
-            data[i][5] = bb.getBorrowDate();
-            data[i][6] = bb.getDueDate();
-            data[i][7] = bb.getPrice() + " VND";
+            data[i][0] = i + 1; data[i][1] = bb.getBook().getCode(); data[i][2] = bb.getBook().getBarcode(); data[i][3] = bb.getBook().getName();
+            data[i][4] = bb.getBook().getAuthor(); data[i][5] = bb.getBorrowDate(); data[i][6] = bb.getDueDate(); data[i][7] = bb.getPrice() + " VND";
         }
-        tblBorrowed.setModel(new DefaultTableModel(data, columns) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
-        });
+        tblBorrowed.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int row, int col) { return false; } });
     }
 
-    private void updateScannedTable() {
+    public void updateScannedTable() {
         String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Due Date", "Returning Date", "Cover Price", "Damage Status Now"};
         Object[][] data = new Object[returningReceipt.getListReturnedBook().size()][9];
         for (int i = 0; i < returningReceipt.getListReturnedBook().size(); i++) {
             ReturnedBook rb = returningReceipt.getListReturnedBook().get(i);
-            data[i][0] = i + 1;
-            data[i][1] = rb.getBorrowedBook().getBook().getCode();
-            data[i][2] = rb.getBorrowedBook().getBook().getBarcode();
-            data[i][3] = rb.getBorrowedBook().getBook().getName();
-            data[i][4] = rb.getBorrowedBook().getBook().getAuthor();
-            data[i][5] = rb.getBorrowedBook().getDueDate();
-            data[i][6] = rb.getReturnDate();
-            data[i][7] = rb.getBorrowedBook().getPrice() + " VND";
+            data[i][0] = i + 1; data[i][1] = rb.getBorrowedBook().getBook().getCode(); data[i][2] = rb.getBorrowedBook().getBook().getBarcode();
+            data[i][3] = rb.getBorrowedBook().getBook().getName(); data[i][4] = rb.getBorrowedBook().getBook().getAuthor();
+            data[i][5] = rb.getBorrowedBook().getDueDate(); data[i][6] = rb.getReturnDate(); data[i][7] = rb.getBorrowedBook().getPrice() + " VND";
             data[i][8] = rb.getListBookDamage().isEmpty() ? "OK" : rb.getListBookDamage().size() + " damage(s)";
         }
-        tblScanned.setModel(new DefaultTableModel(data, columns) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return column == 8; }
-        });
-        
+        tblScanned.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int row, int col) { return col == 8; } });
         tblScanned.getColumnModel().getColumn(8).setCellRenderer(new ButtonRenderer());
         tblScanned.getColumnModel().getColumn(8).setCellEditor(new ButtonEditor(new JCheckBox(), this));
     }
@@ -213,34 +176,20 @@ public class BookReturnFrm extends JFrame implements ActionListener {
                 for (BorrowedBook bb : borrowingReceipt.getListBorrowedBook()) {
                     boolean alreadyScanned = false;
                     for (ReturnedBook rb : returningReceipt.getListReturnedBook()) {
-                        if (rb.getBorrowedBook().getId() == bb.getId()) {
-                            alreadyScanned = true;
-                            break;
-                        }
+                        if (rb.getBorrowedBook().getId() == bb.getId()) { alreadyScanned = true; break; }
                     }
-                    if (!alreadyScanned) {
-                        target = bb;
-                        break;
-                    }
+                    if (!alreadyScanned) { target = bb; break; }
                 }
             }
-            
             if (target != null) {
                 ReturnedBook rb = new ReturnedBook();
-                rb.setBorrowedBook(target);
-                rb.setReturnDate(new Date());
+                rb.setBorrowedBook(target); rb.setReturnDate(new Date());
                 returningReceipt.getListReturnedBook().add(rb);
-                updateBorrowedTable();
-                updateScannedTable();
-            } else {
-                JOptionPane.showMessageDialog(this, "All books have been scanned!");
-            }
+                updateBorrowedTable(); updateScannedTable();
+            } else { JOptionPane.showMessageDialog(this, "All books have been scanned!"); }
         } else if (e.getSource() == btnNext) {
-            if (returningReceipt.getListReturnedBook().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No books scanned!");
-                return;
-            }
-            (new ReturningReceiptFrm(returningReceipt)).setVisible(true);
+            if (returningReceipt.getListReturnedBook().isEmpty()) { JOptionPane.showMessageDialog(this, "No books scanned!"); return; }
+            (new ReturningReceiptFrm(borrowingReceipt, returningReceipt)).setVisible(true);
             dispose();
         }
     }
@@ -249,18 +198,12 @@ public class BookReturnFrm extends JFrame implements ActionListener {
         ReturnedBook rb = returningReceipt.getListReturnedBook().get(row);
         (new BookDamageFrm(this, rb)).setVisible(true);
     }
-
-    public void refreshScannedTable() {
-        updateScannedTable();
-    }
 }
 
 class ButtonRenderer extends JButton implements TableCellRenderer {
     public ButtonRenderer() { setOpaque(true); }
-    @Override
-    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-        setText(value != null ? value.toString() : "");
-        return this;
+    @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean isS, boolean hasF, int r, int c) {
+        setText(v != null ? v.toString() : ""); return this;
     }
 }
 
@@ -270,28 +213,15 @@ class ButtonEditor extends DefaultCellEditor {
     private boolean isPushed;
     private BookReturnFrm parent;
     private int row;
-
     public ButtonEditor(JCheckBox checkBox, BookReturnFrm parent) {
-        super(checkBox);
-        this.parent = parent;
-        button = new JButton();
-        button.setOpaque(true);
-        button.addActionListener(e -> fireEditingStopped());
+        super(checkBox); this.parent = parent;
+        button = new JButton(); button.setOpaque(true); button.addActionListener(e -> fireEditingStopped());
     }
-
-    @Override
-    public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-        label = value != null ? value.toString() : "";
-        button.setText(label);
-        this.row = row;
-        isPushed = true;
-        return button;
+    @Override public Component getTableCellEditorComponent(JTable t, Object v, boolean isS, int r, int c) {
+        label = v != null ? v.toString() : ""; button.setText(label); this.row = r; isPushed = true; return button;
     }
-
-    @Override
-    public Object getCellEditorValue() {
+    @Override public Object getCellEditorValue() {
         if (isPushed) parent.editDamage(row);
-        isPushed = false;
-        return label;
+        isPushed = false; return label;
     }
 }
