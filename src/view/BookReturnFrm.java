@@ -107,19 +107,23 @@ public class BookReturnFrm extends JFrame implements ActionListener {
 
         // Load History directly in constructor
         ReturningReceiptDAO rrd = new ReturningReceiptDAO();
-        ArrayList<ReturningReceipt> listReturningHistory = rrd.getReturningReceipt(reader);
+        ArrayList<ReturningReceipt> listReturningHistory = rrd.getReturnedBook(reader);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String[] columnsHistory = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine Amount"};
         
-        // We need to count total returned books and fetch their damages
         int totalRows = 0;
         for (ReturningReceipt rrt : listReturningHistory) totalRows += rrt.getListReturnedBook().size();
         Object[][] dataHistory = new Object[totalRows][9];
         int k = 0;
         for (ReturningReceipt rrt : listReturningHistory) {
-            // Fetch damages for this receipt
-            ArrayList<BookDamage> damagesForReceipt = rrd.getBookDamagesByReceipt(rrt.getId());
-            for (ReturnedBook rb : rrt.getListReturnedBook()) {
+            // Tách chuỗi tiền phạt từ note
+            String[] fines = {};
+            if (rrt.getNote().contains("| Fine:")) {
+                fines = rrt.getNote().split("\\| Fine:")[1].split(";");
+            }
+            
+            for (int i = 0; i < rrt.getListReturnedBook().size(); i++) {
+                ReturnedBook rb = rrt.getListReturnedBook().get(i);
                 dataHistory[k][0] = k + 1;
                 dataHistory[k][1] = rb.getBorrowedBook().getBook().getCode();
                 dataHistory[k][2] = rb.getBorrowedBook().getBook().getBarcode();
@@ -128,11 +132,8 @@ public class BookReturnFrm extends JFrame implements ActionListener {
                 dataHistory[k][5] = rb.getBorrowedBook().getPrice() + " VND";
                 dataHistory[k][6] = sdf.format(rb.getBorrowedBook().getDueDate());
                 dataHistory[k][7] = sdf.format(rb.getReturnDate());
-                float fine = (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) ? rb.getBorrowedBook().getPrice() * 0.2f : 0;
-                for (BookDamage bd : damagesForReceipt) {
-                    if (bd.getReturnedBook().getId() == rb.getId()) fine += bd.getFineAmount();
-                }
-                dataHistory[k][8] = fine + " VND";
+                String fineVal = (i < fines.length) ? fines[i] : "0";
+                dataHistory[k][8] = fineVal + " VND";
                 k++;
             }
         }

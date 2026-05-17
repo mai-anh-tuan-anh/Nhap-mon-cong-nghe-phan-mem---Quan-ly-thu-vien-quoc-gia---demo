@@ -12,46 +12,47 @@ public class ReturningReceiptDAO extends DAO {
         super();
     }
 
-    public ArrayList<ReturningReceipt> getReturningReceipt(Reader r) {
+    public ArrayList<ReturningReceipt> getReturnedBook(Reader r) {
         ArrayList<ReturningReceipt> result = new ArrayList<>();
-        String sql = "SELECT * FROM tblReturningReceipt WHERE tblReaderId = ? ORDER BY createdDate DESC";
+        // SQL lấy thông tin biên bản, sách trả, và tính tiền phạt (muộn + hỏng) cho từng cuốn
+        String sql = "SELECT rr.*, rb.id as rbId, rb.returnDate, " +
+                     "bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
+                     "b.id as bId, b.name as bName, b.code, b.barcode as bBarcode, b.author as bAuthor, " +
+                     "(SELECT COALESCE(SUM(fineAmount), 0) FROM tblBookDamage WHERE tblReturnedBookId = rb.id) as damageFine " +
+                     "FROM tblReturningReceipt rr " +
+                     "JOIN tblReturnedBook rb ON rr.id = rb.tblReturningReceiptId " +
+                     "JOIN tblBorrowedBook bb ON rb.tblBorrowedBookId = bb.id " +
+                     "JOIN tblBook b ON bb.tblBookId = b.id " +
+                     "WHERE rr.tblReaderId = ? " +
+                     "ORDER BY rr.createdDate DESC, rb.id ASC";
         try {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, r.getId());
             ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                ReturningReceipt rr = new ReturningReceipt();
-                rr.setId(rs.getInt("id"));
-                rr.setBarcode(rs.getString("barcode"));
-                rr.setNote(rs.getString("note"));
-                rr.setCreatedDate(rs.getTimestamp("createdDate"));
-                rr.setReader(r);
-                
-                // Fetch books for this receipt
-                rr.setListReturnedBook(getReturnedBooksByReceipt(rr.getId()));
-                result.add(rr);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
 
-    private ArrayList<ReturnedBook> getReturnedBooksByReceipt(int receiptId) {
-        ArrayList<ReturnedBook> result = new ArrayList<>();
-        String sql = "SELECT rb.*, bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
-                     "b.id as bId, b.name as bName, b.code, b.barcode as bBarcode, b.author as bAuthor " +
-                     "FROM tblReturnedBook rb " +
-                     "JOIN tblBorrowedBook bb ON rb.tblBorrowedBookId = bb.id " +
-                     "JOIN tblBook b ON bb.tblBookId = b.id " +
-                     "WHERE rb.tblReturningReceiptId = ?";
-        try {
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, receiptId);
-            ResultSet rs = ps.executeQuery();
+            ReturningReceipt currentRR = null;
+            StringBuilder fineString = new StringBuilder();
+            
             while (rs.next()) {
+                int rrId = rs.getInt("id");
+                if (currentRR == null || currentRR.getId() != rrId) {
+                    // Khi sang receipt mới, lưu chuỗi tiền phạt của receipt cũ vào note
+                    if (currentRR != null) {
+                        currentRR.setNote(currentRR.getNote() + " | Fine:" + fineString.toString());
+                    }
+                    
+                    currentRR = new ReturningReceipt();
+                    currentRR.setId(rrId);
+                    currentRR.setBarcode(rs.getString("barcode"));
+                    currentRR.setNote(rs.getString("note") == null ? "" : rs.getString("note"));
+                    currentRR.setCreatedDate(rs.getTimestamp("createdDate"));
+                    currentRR.setReader(r);
+                    result.add(currentRR);
+                    fineString = new StringBuilder();
+                }
+
                 ReturnedBook rb = new ReturnedBook();
-                rb.setId(rs.getInt("id"));
+                rb.setId(rs.getInt("rbId"));
                 rb.setReturnDate(rs.getDate("returnDate"));
                 
                 BorrowedBook bb = new BorrowedBook();
@@ -68,42 +69,16 @@ public class ReturningReceiptDAO extends DAO {
                 b.setAuthor(rs.getString("bAuthor"));
                 bb.setBook(b);
                 rb.setBorrowedBook(bb);
-                result.add(rb);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
+                currentRR.getListReturnedBook().add(rb);
 
-    public ArrayList<BookDamage> getBookDamagesByReceipt(int receiptId) {
-        ArrayList<BookDamage> result = new ArrayList<>();
-        String sql = "SELECT bd.*, rb.id as rbId, d.id as dId, d.name as dName, d.fineRate " +
-                     "FROM tblBookDamage bd " +
-                     "JOIN tblReturnedBook rb ON bd.tblReturnedBookId = rb.id " +
-                     "JOIN tblDamage d ON bd.tblDamageId = d.id " +
-                     "WHERE rb.tblReturningReceiptId = ?";
-        try {
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, receiptId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                BookDamage bd = new BookDamage();
-                bd.setId(rs.getInt("id"));
-                bd.setNote(rs.getString("note"));
-                bd.setDetectedDate(rs.getDate("detectedDate"));
-                bd.setFineAmount(rs.getFloat("fineAmount"));
-                
-                Damage d = new Damage();
-                d.setId(rs.getInt("dId"));
-                d.setName(rs.getString("dName"));
-                d.setFineRate(rs.getFloat("fineRate"));
-                bd.setDamage(d);
-                
-                ReturnedBook rb = new ReturnedBook();
-                rb.setId(rs.getInt("rbId"));
-                bd.setReturnedBook(rb);
-                result.add(bd);
+                // Tính tiền phạt muộn (20%) + tiền hỏng
+                float lateFine = (rb.getReturnDate().after(bb.getDueDate())) ? bb.getPrice() * 0.2f : 0;
+                float totalBookFine = lateFine + rs.getFloat("damageFine");
+                fineString.append(totalBookFine).append(";");
+            }
+            // Lưu cho receipt cuối cùng
+            if (currentRR != null) {
+                currentRR.setNote(currentRR.getNote() + " | Fine:" + fineString.toString());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -127,9 +102,7 @@ public class ReturningReceiptDAO extends DAO {
             psRR.executeUpdate();
             
             ResultSet rsRR = psRR.getGeneratedKeys();
-            if (rsRR.next()) {
-                rr.setId(rsRR.getInt(1));
-            }
+            if (rsRR.next()) rr.setId(rsRR.getInt(1));
 
             for (ReturnedBook rb : rr.getListReturnedBook()) {
                 PreparedStatement psRB = con.prepareStatement(sqlRB, Statement.RETURN_GENERATED_KEYS);
@@ -137,11 +110,8 @@ public class ReturningReceiptDAO extends DAO {
                 psRB.setInt(2, rr.getId());
                 psRB.setInt(3, rb.getBorrowedBook().getId());
                 psRB.executeUpdate();
-
                 ResultSet rsRB = psRB.getGeneratedKeys();
-                if (rsRB.next()) {
-                    rb.setId(rsRB.getInt(1));
-                }
+                if (rsRB.next()) rb.setId(rsRB.getInt(1));
             }
 
             for (BookDamage bd : listBD) {
@@ -153,22 +123,13 @@ public class ReturningReceiptDAO extends DAO {
                 psBD.setInt(5, bd.getReturnedBook().getId());
                 psBD.executeUpdate();
             }
-            
             con.commit();
         } catch (Exception e) {
-            try {
-                con.rollback();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            try { con.rollback(); } catch (Exception ex) { ex.printStackTrace(); }
             e.printStackTrace();
             return false;
         } finally {
-            try {
-                con.setAutoCommit(true);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            try { con.setAutoCommit(true); } catch (Exception e) { e.printStackTrace(); }
         }
         return true;
     }
