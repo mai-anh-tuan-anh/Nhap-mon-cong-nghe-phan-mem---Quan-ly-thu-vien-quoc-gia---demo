@@ -4,7 +4,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
-import model.*;
+import model.Book;
+import model.BookDamage;
+import model.BorrowedBook;
+import model.Reader;
+import model.ReturnedBook;
+import model.ReturningReceipt;
 
 public class ReturningReceiptDAO extends DAO {
 

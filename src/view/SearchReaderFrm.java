@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -66,6 +67,7 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
         if (e.getSource() == btnSearch) {
             String key = txtSearch.getText().trim();
             if (!key.isEmpty()) {
@@ -74,7 +76,7 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
                 Object[][] data = new Object[listReader.size()][6];
                 for (int i = 0; i < listReader.size(); i++) {
                     Reader r = listReader.get(i);
-                    data[i][0] = r.getId(); data[i][1] = r.getName(); data[i][2] = r.getDateOfBirth();
+                    data[i][0] = r.getId(); data[i][1] = r.getName(); data[i][2] = r.getDateOfBirth() != null ? sdf.format(r.getDateOfBirth()) : "";
                     data[i][3] = r.getAddress(); data[i][4] = r.getPhoneNumber(); data[i][5] = r.getBarcode();
                 }
                 tblResult.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int r, int c) { return false; } });
@@ -89,7 +91,7 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
                     Object[][] data = new Object[listReader.size()][6];
                     for (int i = 0; i < listReader.size(); i++) {
                         Reader r2 = listReader.get(i);
-                        data[i][0] = r2.getId(); data[i][1] = r2.getName(); data[i][2] = r2.getDateOfBirth();
+                        data[i][0] = r2.getId(); data[i][1] = r2.getName(); data[i][2] = r2.getDateOfBirth() != null ? sdf.format(r2.getDateOfBirth()) : "";
                         data[i][3] = r2.getAddress(); data[i][4] = r2.getPhoneNumber(); data[i][5] = r2.getBarcode();
                     }
                     tblResult.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int r, int c) { return false; } });

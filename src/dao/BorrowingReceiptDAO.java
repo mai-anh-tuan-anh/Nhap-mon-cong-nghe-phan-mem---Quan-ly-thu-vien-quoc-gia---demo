@@ -2,7 +2,10 @@ package dao;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import model.*;
+import model.Book;
+import model.BorrowedBook;
+import model.BorrowingReceipt;
+import model.Reader;
 
 public class BorrowingReceiptDAO extends DAO {
 
