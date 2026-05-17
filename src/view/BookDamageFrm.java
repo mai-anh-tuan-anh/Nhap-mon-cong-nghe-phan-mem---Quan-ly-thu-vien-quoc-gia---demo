@@ -108,8 +108,9 @@ public class BookDamageFrm extends JDialog implements ActionListener {
 
     private void loadDamage() {
         DamageDAO dd = new DamageDAO();
-        listDamage = dd.getAllDamage();
-        String[] columns = {"ID", "Name", "Fine Rate (%)", "Select"};
+        listDamage = dd.chooseDamage();
+        String[] columns = {"Order", "Type", "Fine Rate", "Select"};
+
         Object[][] data = new Object[listDamage.size()][4];
         for (int i = 0; i < listDamage.size(); i++) {
             Damage d = listDamage.get(i);

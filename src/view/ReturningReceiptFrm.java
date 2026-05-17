@@ -17,11 +17,12 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
     private JButton btnSubmit, btnBack, btnMainPage;
     private JLabel lblTotalFine, lblDeposit;
 
-    public ReturningReceiptFrm(User user, Reader reader, ReturningReceipt rr) {
+    public ReturningReceiptFrm(ReturningReceipt rr) {
         super("Returning Receipt");
-        this.user = user;
-        this.reader = reader;
         this.returningReceipt = rr;
+        this.user = rr.getUser();
+        this.reader = rr.getReader();
+        
         setSize(900, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -54,7 +55,7 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
         panel.add(unreturnedLabel);
         y += 30;
 
-        JTable tblUnreturned = new JTable(); // To be populated if needed
+        JTable tblUnreturned = new JTable();
         JScrollPane unreturnedScroll = new JScrollPane(tblUnreturned);
         unreturnedScroll.setBounds(20, y, 850, 60);
         panel.add(unreturnedScroll);
@@ -122,7 +123,7 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
         btnBack = new JButton("Back");
         btnBack.setBounds(490, y, 100, 30);
         btnBack.addActionListener(e -> {
-            new BookReturnFrm(user, reader, null).setVisible(true);
+            new BookReturnFrm(null, returningReceipt).setVisible(true);
             dispose();
         });
         panel.add(btnBack);
@@ -135,13 +136,12 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
         float totalFine = 0;
         float totalDeposit = 0;
         
-        // Late Fine Table Data
         ArrayList<Object[]> lateData = new ArrayList<>();
         ArrayList<Object[]> damagedData = new ArrayList<>();
 
         for (int i = 0; i < returningReceipt.getListReturnedBook().size(); i++) {
             ReturnedBook rb = returningReceipt.getListReturnedBook().get(i);
-            totalDeposit += rb.getBorrowedBook().getPrice(); // Assuming price is deposit
+            totalDeposit += rb.getBorrowedBook().getPrice();
             
             float lateFine = 0;
             if (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) {

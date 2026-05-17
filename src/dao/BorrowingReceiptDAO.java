@@ -2,7 +2,6 @@ package dao;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import model.*;
 
 public class BorrowingReceiptDAO extends DAO {
@@ -13,8 +12,6 @@ public class BorrowingReceiptDAO extends DAO {
 
     public BorrowingReceipt getBorrowedBook(Reader r) {
         BorrowingReceipt br = null;
-        // This is a simplified version, in reality there could be multiple active receipts
-        // We look for books in tblBorrowedBook that haven't been returned yet
         String sql = "SELECT br.*, bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
                      "b.id as bId, b.code, b.name as bName, b.author, b.barcode as bBarcode, b.price as bPrice " +
                      "FROM tblBorrowingReceipt br " +

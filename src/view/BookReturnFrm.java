@@ -3,6 +3,7 @@ package view;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import javax.swing.*;
@@ -20,16 +21,12 @@ public class BookReturnFrm extends JFrame implements ActionListener {
     private JTable tblBorrowed, tblScanned, tblReturnedHistory;
     private JButton btnScan, btnNext, btnBack;
 
-    public BookReturnFrm(User user, Reader reader, BorrowingReceipt br) {
+    public BookReturnFrm(BorrowingReceipt br, ReturningReceipt rr) {
         super("Book Return");
-        this.user = user;
-        this.reader = reader;
+        this.returningReceipt = rr;
+        this.user = rr.getUser();
+        this.reader = rr.getReader();
         this.borrowingReceipt = br;
-        this.returningReceipt = new ReturningReceipt();
-        returningReceipt.setReader(reader);
-        returningReceipt.setUser(user);
-        returningReceipt.setCreatedDate(new Date());
-        returningReceipt.setBarcode("RR" + System.currentTimeMillis());
 
         setSize(1000, 800);
         setLocationRelativeTo(null);
@@ -118,6 +115,7 @@ public class BookReturnFrm extends JFrame implements ActionListener {
     }
 
     private void updateHistoryTable() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine Amount"};
         int totalRows = 0;
         for (ReturningReceipt rr : listReturningHistory) totalRows += rr.getListReturnedBook().size();
@@ -132,8 +130,8 @@ public class BookReturnFrm extends JFrame implements ActionListener {
                 data[k][3] = rb.getBorrowedBook().getBook().getName();
                 data[k][4] = rb.getBorrowedBook().getBook().getAuthor();
                 data[k][5] = rb.getBorrowedBook().getPrice() + " VND";
-                data[k][6] = rb.getBorrowedBook().getDueDate();
-                data[k][7] = rb.getReturnDate();
+                data[k][6] = sdf.format(rb.getBorrowedBook().getDueDate());
+                data[k][7] = sdf.format(rb.getReturnDate());
                 
                 float fine = 0;
                 if (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) {
@@ -184,8 +182,8 @@ public class BookReturnFrm extends JFrame implements ActionListener {
     }
 
     private void updateScannedTable() {
-        String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Due Date", "Returning Date", "Cover Price", "Damage Status Before Borrowing", "Damage Status Now"};
-        Object[][] data = new Object[returningReceipt.getListReturnedBook().size()][10];
+        String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Due Date", "Returning Date", "Cover Price", "Damage Status Now"};
+        Object[][] data = new Object[returningReceipt.getListReturnedBook().size()][9];
         for (int i = 0; i < returningReceipt.getListReturnedBook().size(); i++) {
             ReturnedBook rb = returningReceipt.getListReturnedBook().get(i);
             data[i][0] = i + 1;
@@ -196,41 +194,38 @@ public class BookReturnFrm extends JFrame implements ActionListener {
             data[i][5] = rb.getBorrowedBook().getDueDate();
             data[i][6] = rb.getReturnDate();
             data[i][7] = rb.getBorrowedBook().getPrice() + " VND";
-            data[i][8] = "OK";
-            data[i][9] = rb.getListBookDamage().isEmpty() ? "OK" : rb.getListBookDamage().size() + " damage(s)";
+            data[i][8] = rb.getListBookDamage().isEmpty() ? "OK" : rb.getListBookDamage().size() + " damage(s)";
         }
         tblScanned.setModel(new DefaultTableModel(data, columns) {
             @Override
-            public boolean isCellEditable(int row, int column) { return column == 9; }
+            public boolean isCellEditable(int row, int column) { return column == 8; }
         });
         
-        tblScanned.getColumnModel().getColumn(9).setCellRenderer(new ButtonRenderer());
-        tblScanned.getColumnModel().getColumn(9).setCellEditor(new ButtonEditor(new JCheckBox(), this));
+        tblScanned.getColumnModel().getColumn(8).setCellRenderer(new ButtonRenderer());
+        tblScanned.getColumnModel().getColumn(8).setCellEditor(new ButtonEditor(new JCheckBox(), this));
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btnScan) {
-            String code = JOptionPane.showInputDialog(this, "Enter Book Code or Barcode:");
-            if (code == null || code.trim().isEmpty()) return;
-            code = code.trim();
-            
             BorrowedBook target = null;
-            for (BorrowedBook bb : borrowingReceipt.getListBorrowedBook()) {
-                if (bb.getBook().getCode().equals(code) || bb.getBook().getBarcode().equals(code)) {
-                    target = bb;
-                    break;
+            if (borrowingReceipt != null) {
+                for (BorrowedBook bb : borrowingReceipt.getListBorrowedBook()) {
+                    boolean alreadyScanned = false;
+                    for (ReturnedBook rb : returningReceipt.getListReturnedBook()) {
+                        if (rb.getBorrowedBook().getId() == bb.getId()) {
+                            alreadyScanned = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyScanned) {
+                        target = bb;
+                        break;
+                    }
                 }
             }
             
             if (target != null) {
-                for (ReturnedBook rb : returningReceipt.getListReturnedBook()) {
-                    if (rb.getBorrowedBook().getId() == target.getId()) {
-                        JOptionPane.showMessageDialog(this, "Book already scanned!");
-                        return;
-                    }
-                }
-                
                 ReturnedBook rb = new ReturnedBook();
                 rb.setBorrowedBook(target);
                 rb.setReturnDate(new Date());
@@ -238,14 +233,14 @@ public class BookReturnFrm extends JFrame implements ActionListener {
                 updateBorrowedTable();
                 updateScannedTable();
             } else {
-                JOptionPane.showMessageDialog(this, "This book is not in the reader's borrowed list!");
+                JOptionPane.showMessageDialog(this, "All books have been scanned!");
             }
         } else if (e.getSource() == btnNext) {
             if (returningReceipt.getListReturnedBook().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No books scanned!");
                 return;
             }
-            (new ReturningReceiptFrm(user, reader, returningReceipt)).setVisible(true);
+            (new ReturningReceiptFrm(returningReceipt)).setVisible(true);
             dispose();
         }
     }

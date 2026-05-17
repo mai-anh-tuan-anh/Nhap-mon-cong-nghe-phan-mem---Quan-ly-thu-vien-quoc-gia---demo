@@ -3,7 +3,9 @@ package view;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import dao.BorrowingReceiptDAO;
@@ -102,6 +104,7 @@ public class ReaderDetailFrm extends JFrame implements ActionListener {
     }
 
     private void updateBorrowedTable() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Borrowing Date", "Due Date", "Cover Price"};
         if (borrowingReceipt == null || borrowingReceipt.getListBorrowedBook().isEmpty()) {
             tblBorrowed.setModel(new DefaultTableModel(null, columns));
@@ -115,14 +118,15 @@ public class ReaderDetailFrm extends JFrame implements ActionListener {
             data[i][2] = bb.getBook().getBarcode();
             data[i][3] = bb.getBook().getName();
             data[i][4] = bb.getBook().getAuthor();
-            data[i][5] = bb.getBorrowDate();
-            data[i][6] = bb.getDueDate();
+            data[i][5] = sdf.format(bb.getBorrowDate());
+            data[i][6] = sdf.format(bb.getDueDate());
             data[i][7] = bb.getPrice();
         }
         tblBorrowed.setModel(new DefaultTableModel(data, columns));
     }
 
     private void updateReturnedTable() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String[] columns = {"Order", "Book Code", "Bar Code", "Name", "Author", "Cover Price", "Due Date", "Returning Date", "Fine"};
         int totalRows = 0;
         for (ReturningReceipt rr : listReturningReceipt) totalRows += rr.getListReturnedBook().size();
@@ -137,15 +141,13 @@ public class ReaderDetailFrm extends JFrame implements ActionListener {
                 data[k][3] = rb.getBorrowedBook().getBook().getName();
                 data[k][4] = rb.getBorrowedBook().getBook().getAuthor();
                 data[k][5] = rb.getBorrowedBook().getPrice() + " VND";
-                data[k][6] = rb.getBorrowedBook().getDueDate();
-                data[k][7] = rb.getReturnDate();
+                data[k][6] = sdf.format(rb.getBorrowedBook().getDueDate());
+                data[k][7] = sdf.format(rb.getReturnDate());
                 
                 float fine = 0;
-                // Late fine 20%
                 if (rb.getReturnDate().after(rb.getBorrowedBook().getDueDate())) {
                     fine += rb.getBorrowedBook().getPrice() * 0.2f;
                 }
-                // Damage fines
                 for (BookDamage bd : rb.getListBookDamage()) {
                     fine += bd.getFineAmount();
                 }
@@ -161,8 +163,32 @@ public class ReaderDetailFrm extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == btnScanBook || e.getSource() == btnNext) {
-            (new BookReturnFrm(user, reader, borrowingReceipt)).setVisible(true);
+        if (e.getSource() == btnScanBook) {
+            if (borrowingReceipt != null && !borrowingReceipt.getListBorrowedBook().isEmpty()) {
+                ReturningReceipt demoRR = new ReturningReceipt();
+                demoRR.setReader(reader);
+                demoRR.setUser(user);
+                demoRR.setCreatedDate(new Date());
+                demoRR.setBarcode("RR" + System.currentTimeMillis());
+                
+                BorrowedBook firstBook = borrowingReceipt.getListBorrowedBook().get(0);
+                ReturnedBook rb = new ReturnedBook();
+                rb.setBorrowedBook(firstBook);
+                rb.setReturnDate(new Date());
+                demoRR.getListReturnedBook().add(rb);
+                
+                (new BookReturnFrm(borrowingReceipt, demoRR)).setVisible(true);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "No books to scan!");
+            }
+        } else if (e.getSource() == btnNext) {
+            ReturningReceipt rr = new ReturningReceipt();
+            rr.setReader(reader);
+            rr.setUser(user);
+            rr.setCreatedDate(new Date());
+            rr.setBarcode("RR" + System.currentTimeMillis());
+            (new BookReturnFrm(borrowingReceipt, rr)).setVisible(true);
             dispose();
         }
     }
