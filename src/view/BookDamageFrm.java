@@ -1,5 +1,6 @@
 package view;
 
+import dao.DamageDAO;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -8,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import dao.DamageDAO;
 import model.*;
 
 public class BookDamageFrm extends JFrame implements ActionListener {
@@ -23,7 +23,7 @@ public class BookDamageFrm extends JFrame implements ActionListener {
     public BookDamageFrm(BorrowingReceipt br, ReturningReceipt rr, ReturnedBook rb, ArrayList<BookDamage> listBD) {
         super("Select Damage Status");
         this.borrowingReceipt = br; this.returningReceipt = rr; this.returnedBook = rb; this.listBookDamage = listBD;
-        setSize(600, 500); setLocationRelativeTo(null); setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setSize(600, 600); setLocationRelativeTo(null); setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         JPanel panel = new JPanel(); panel.setLayout(null); panel.setBackground(new Color(240, 240, 240));
         JLabel title = new JLabel("BOOK DAMAGE SELECTION"); title.setFont(new Font("Arial", Font.BOLD, 18)); title.setBounds(180, 10, 250, 30); panel.add(title);
