@@ -43,7 +43,7 @@ public class BookDamageFrm extends JFrame implements ActionListener {
         tblDamage = new JTable(); JScrollPane scrollPane = new JScrollPane(tblDamage);
         scrollPane.setBounds(20, y, 540, 110); panel.add(scrollPane); y += 130;
 
-        btnAdd = new JButton("Add"); btnAdd.setBounds(20, y, 80, 25); panel.add(btnAdd); y += 40;
+        btnAdd = new JButton("Add"); btnAdd.setBounds(20, y, 80, 25); btnAdd.addActionListener(this); panel.add(btnAdd); y += 40;
         btnBack = new JButton("Back"); btnBack.setBounds(150, y, 100, 30); btnBack.addActionListener(this); panel.add(btnBack);
         btnAccept = new JButton("Accept"); btnAccept.setBounds(300, y, 100, 30); btnAccept.addActionListener(this); panel.add(btnAccept);
 
@@ -64,10 +64,49 @@ public class BookDamageFrm extends JFrame implements ActionListener {
                 boolean sel = false; for (BookDamage bd : listBookDamage) { if (bd.getReturnedBook().getId() == returnedBook.getId() && bd.getDamage().getId() == d.getId()) { sel = true; break; } }
                 data[i][3] = sel;
             }
-            tblDamage.setModel(new DefaultTableModel(data, new String[]{"Order", "Type", "Fine Rate", "Select"}) {
+            DefaultTableModel model = new DefaultTableModel(data, new String[]{"Order", "Type", "Fine Rate", "Select"}) {
                 @Override public Class<?> getColumnClass(int c) { return c == 3 ? Boolean.class : super.getColumnClass(c); }
-                @Override public boolean isCellEditable(int r, int c) { return c == 3; }
+                @Override public boolean isCellEditable(int r, int c) {
+                    if (c == 3) return true;
+                    Object id = getValueAt(r, 0);
+                    return (id == null || id.toString().equals("0") || id.toString().isEmpty()) && (c == 1 || c == 2);
+                }
+            };
+            tblDamage.setModel(model);
+            model.addTableModelListener(ev -> {
+                int row = ev.getFirstRow(); int col = ev.getColumn();
+                if (col == 3) {
+                    Boolean sel = (Boolean) tblDamage.getValueAt(row, 3);
+                    if (sel != null && sel) {
+                        Damage d = listDamage.get(row);
+                        if (d.getId() == 0) {
+                            String name = (String) tblDamage.getValueAt(row, 1);
+                            Object rateObj = tblDamage.getValueAt(row, 2);
+                            if (name == null || name.trim().isEmpty() || rateObj == null || rateObj.toString().trim().isEmpty()) {
+                                JOptionPane.showMessageDialog(this, "Please enter Type and Fine Rate.");
+                                SwingUtilities.invokeLater(() -> tblDamage.setValueAt(false, row, 3)); return;
+                            }
+                            try {
+                                d.setName(name); d.setFineRate(Float.parseFloat(rateObj.toString()));
+                                if (new DamageDAO().addDamage(d)) {
+                                    tblDamage.setValueAt(d.getId(), row, 0);
+                                } else {
+                                    JOptionPane.showMessageDialog(this, "Save failed.");
+                                    SwingUtilities.invokeLater(() -> tblDamage.setValueAt(false, row, 3));
+                                }
+                            } catch (Exception ex) {
+                                JOptionPane.showMessageDialog(this, "Invalid rate.");
+                                SwingUtilities.invokeLater(() -> tblDamage.setValueAt(false, row, 3));
+                            }
+                        }
+                    }
+                }
             });
+
+        } else if (e.getSource() == btnAdd) {
+            Damage d = new Damage(); d.setId(0); d.setName(""); d.setFineRate(0);
+            listDamage.add(d);
+            ((DefaultTableModel)tblDamage.getModel()).addRow(new Object[]{0, "", 0.0f, false});
 
         } else if (e.getSource() == btnAccept) {
             ArrayList<BookDamage> toRemove = new ArrayList<>();

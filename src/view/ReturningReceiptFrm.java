@@ -1,14 +1,13 @@
 package view;
 
+import dao.ReturningReceiptDAO;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import dao.ReturningReceiptDAO;
 import model.*;
 
 public class ReturningReceiptFrm extends JFrame implements ActionListener {
@@ -29,7 +28,7 @@ public class ReturningReceiptFrm extends JFrame implements ActionListener {
         this.user = rr.getUser();
         this.reader = rr.getReader();
         
-        setSize(900, 750);
+        setSize(900, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
