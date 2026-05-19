@@ -1,18 +1,14 @@
 package dao;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import model.Book;
 import model.BorrowedBook;
 import model.BorrowingReceipt;
 import model.Reader;
-
 public class BorrowingReceiptDAO extends DAO {
-
     public BorrowingReceiptDAO() {
         super();
     }
-
     public BorrowingReceipt getBorrowedBook(Reader r) {
         BorrowingReceipt br = null;
         String sql = "SELECT br.*, bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
@@ -27,7 +23,6 @@ public class BorrowingReceiptDAO extends DAO {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, r.getId());
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 if (br == null) {
                     br = new BorrowingReceipt();
@@ -38,7 +33,6 @@ public class BorrowingReceiptDAO extends DAO {
                     br.setDepositAmount(rs.getFloat("depositAmount"));
                     br.setReader(r);
                 }
-
                 BorrowedBook bb = new BorrowedBook();
                 bb.setId(rs.getInt("bbId"));
                 bb.setBorrowDate(rs.getDate("borrowDate"));

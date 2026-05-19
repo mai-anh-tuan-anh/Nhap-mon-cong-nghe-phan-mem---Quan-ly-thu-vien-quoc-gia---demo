@@ -1,15 +1,11 @@
 package dao;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import model.User;
-
 public class UserDAO extends DAO {
-
     public UserDAO() {
         super();
     }
-
     public boolean checkLogin(User u) {
         String sql = "SELECT fullName, role, id FROM tblUser WHERE username = ? AND password = ?";
         try {
@@ -17,7 +13,6 @@ public class UserDAO extends DAO {
             ps.setString(1, u.getUsername());
             ps.setString(2, u.getPassword());
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
                 u.setFullName(rs.getString("fullName"));
                 u.setRole(rs.getString("role"));

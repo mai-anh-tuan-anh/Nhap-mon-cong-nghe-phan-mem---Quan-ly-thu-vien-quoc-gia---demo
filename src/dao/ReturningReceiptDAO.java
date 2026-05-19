@@ -1,5 +1,4 @@
 package dao;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -12,14 +11,11 @@ import model.ReturnedBook;
 import model.ReturningReceipt;
 
 public class ReturningReceiptDAO extends DAO {
-
     public ReturningReceiptDAO() {
         super();
     }
-
     public ArrayList<ReturningReceipt> getReturnedBook(Reader r) {
         ArrayList<ReturningReceipt> result = new ArrayList<>();
-        // SQL lấy thông tin biên bản, sách trả, và tính tiền phạt (muộn + hỏng) cho từng cuốn
         String sql = "SELECT rr.*, rb.id as rbId, rb.returnDate, " +
                      "bb.id as bbId, bb.borrowDate, bb.dueDate, bb.price as bbPrice, " +
                      "b.id as bId, b.name as bName, b.code, b.barcode as bBarcode, b.author as bAuthor, " +
@@ -41,7 +37,6 @@ public class ReturningReceiptDAO extends DAO {
             while (rs.next()) {
                 int rrId = rs.getInt("id");
                 if (currentRR == null || currentRR.getId() != rrId) {
-                    // Khi sang receipt mới, lưu chuỗi tiền phạt của receipt cũ vào note
                     if (currentRR != null) {
                         currentRR.setNote(currentRR.getNote() + " | Fine:" + fineString.toString());
                     }
@@ -75,13 +70,10 @@ public class ReturningReceiptDAO extends DAO {
                 bb.setBook(b);
                 rb.setBorrowedBook(bb);
                 currentRR.getListReturnedBook().add(rb);
-
-                // Tính tiền phạt muộn (20%) + tiền hỏng
                 float lateFine = (rb.getReturnDate().after(bb.getDueDate())) ? bb.getPrice() * 0.2f : 0;
                 float totalBookFine = lateFine + rs.getFloat("damageFine");
                 fineString.append(totalBookFine).append(";");
             }
-            // Lưu cho receipt cuối cùng
             if (currentRR != null) {
                 currentRR.setNote(currentRR.getNote() + " | Fine:" + fineString.toString());
             }

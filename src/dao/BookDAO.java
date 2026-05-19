@@ -1,15 +1,11 @@
 package dao;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import model.Book;
-
 public class BookDAO extends DAO {
-
     public BookDAO() {
         super();
     }
-
     public Book searchBookByCode(String code) {
         Book b = null;
         String sql = "SELECT * FROM tblBook WHERE code = ? OR barcode = ?";
@@ -18,7 +14,6 @@ public class BookDAO extends DAO {
             ps.setString(1, code);
             ps.setString(2, code);
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
                 b = new Book();
                 b.setId(rs.getInt("id"));

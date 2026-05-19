@@ -1,16 +1,13 @@
 package dao;
-
+import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import model.Reader;
-
 public class ReaderDAO extends DAO {
-
     public ReaderDAO() {
         super();
     }
-
     public ArrayList<Reader> searchReaderByName(String key) {
         ArrayList<Reader> result = new ArrayList<>();
         String sql = "SELECT * FROM tblReader WHERE name LIKE ?";
@@ -18,7 +15,6 @@ public class ReaderDAO extends DAO {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, "%" + key + "%");
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 Reader r = new Reader();
                 r.setId(rs.getInt("id"));
@@ -42,7 +38,6 @@ public class ReaderDAO extends DAO {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, barcode);
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
                 r = new Reader();
                 r.setId(rs.getInt("id"));

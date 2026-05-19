@@ -1,17 +1,13 @@
 package dao;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import model.Damage;
-
 public class DamageDAO extends DAO {
-
     public DamageDAO() {
         super();
     }
-
     public ArrayList<Damage> chooseDamage() {
         ArrayList<Damage> result = new ArrayList<>();
         String sql = "SELECT * FROM tblDamage";
@@ -49,5 +45,4 @@ public class DamageDAO extends DAO {
             return false;
         }
     }
-    }
-
+}

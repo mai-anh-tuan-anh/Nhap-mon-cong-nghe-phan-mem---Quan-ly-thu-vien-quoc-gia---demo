@@ -1,17 +1,14 @@
 package view;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 import dao.UserDAO;
 import model.User;
-
 public class LoginFrm extends JFrame implements ActionListener {
     private JTextField txtUsername;
     private JPasswordField txtPassword;
     private JButton btnLogin;
-
     public LoginFrm() {
         super("Librarian Login");
         setSize(400, 300);
@@ -30,7 +27,6 @@ public class LoginFrm extends JFrame implements ActionListener {
         JLabel userLabel = new JLabel("Username:");
         userLabel.setBounds(50, 80, 100, 25);
         panel.add(userLabel);
-
         txtUsername = new JTextField();
         txtUsername.setBounds(150, 80, 180, 25);
         panel.add(txtUsername);
@@ -38,7 +34,6 @@ public class LoginFrm extends JFrame implements ActionListener {
         JLabel passLabel = new JLabel("Password:");
         passLabel.setBounds(50, 120, 100, 25);
         panel.add(passLabel);
-
         txtPassword = new JPasswordField();
         txtPassword.setBounds(150, 120, 180, 25);
         panel.add(txtPassword);
@@ -62,7 +57,6 @@ public class LoginFrm extends JFrame implements ActionListener {
             User u = new User();
             u.setUsername(txtUsername.getText());
             u.setPassword(new String(txtPassword.getPassword()));
-
             UserDAO ud = new UserDAO();
             if (ud.checkLogin(u)) {
                 if (u.getRole().equals("Librarian")) {

@@ -1,5 +1,4 @@
 package test;
-
 import org.junit.Assert;
 import org.junit.Test;
 import dao.UserDAO;
@@ -22,7 +21,7 @@ public class UserDAOTest {
     public void testCheckLoginFail() {
         User u = new User();
         u.setUsername("a");
-        u.setPassword("wrongpass");
+        u.setPassword("wrong_password");
         UserDAO ud = new UserDAO();
         boolean result = ud.checkLogin(u);
         Assert.assertFalse(result);
