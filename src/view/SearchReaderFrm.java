@@ -58,7 +58,10 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
 
         JButton btnBack = new JButton("Back");
         btnBack.setBounds(400, 90, 100, 30);
-        btnBack.addActionListener(e -> { new LibrarianHomeFrm(user).setVisible(true); dispose(); });
+        btnBack.addActionListener(e -> {
+            new LibrarianHomeFrm(user).setVisible(true);
+            dispose();
+        });
         panel.add(btnBack);
 
         add(panel);
@@ -92,7 +95,7 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
                     data[i][4] = r.getPhoneNumber();
                     data[i][5] = r.getBarcode();
                 }
-                tblResult.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int r, int c) { return false; } });
+                tblResult.setModel(new DefaultTableModel(data, columns));
             }
         } else if (e.getSource() == btnScan) {
             String barcode = txtSearch.getText().trim();
@@ -112,7 +115,7 @@ public class SearchReaderFrm extends JFrame implements ActionListener {
                         data[i][4] = r2.getPhoneNumber();
                         data[i][5] = r2.getBarcode();
                     }
-                    tblResult.setModel(new DefaultTableModel(data, columns) { @Override public boolean isCellEditable(int r, int c) { return false; } });
+                    tblResult.setModel(new DefaultTableModel(data, columns));
                 } else { JOptionPane.showMessageDialog(this, "Reader not found!"); }
             }
         }

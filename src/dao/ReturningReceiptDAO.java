@@ -3,12 +3,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
-import model.Book;
-import model.BookDamage;
-import model.BorrowedBook;
-import model.Reader;
-import model.ReturnedBook;
-import model.ReturningReceipt;
+import java.sql.Timestamp;
+import java.sql.Date;
+
+import model.*;
 
 public class ReturningReceiptDAO extends DAO {
     public ReturningReceiptDAO() {
@@ -93,17 +91,16 @@ public class ReturningReceiptDAO extends DAO {
             PreparedStatement psRR = con.prepareStatement(sqlRR, Statement.RETURN_GENERATED_KEYS);
             psRR.setString(1, rr.getBarcode());
             psRR.setString(2, rr.getNote());
-            psRR.setTimestamp(3, new java.sql.Timestamp(rr.getCreatedDate().getTime()));
+            psRR.setTimestamp(3, new Timestamp(rr.getCreatedDate().getTime()));
             psRR.setInt(4, rr.getReader().getId());
             psRR.setInt(5, rr.getUser().getId());
             psRR.executeUpdate();
-            
             ResultSet rsRR = psRR.getGeneratedKeys();
             if (rsRR.next()) rr.setId(rsRR.getInt(1));
 
             for (ReturnedBook rb : rr.getListReturnedBook()) {
                 PreparedStatement psRB = con.prepareStatement(sqlRB, Statement.RETURN_GENERATED_KEYS);
-                psRB.setDate(1, new java.sql.Date(rb.getReturnDate().getTime()));
+                psRB.setDate(1, new Date(rb.getReturnDate().getTime()));
                 psRB.setInt(2, rr.getId());
                 psRB.setInt(3, rb.getBorrowedBook().getId());
                 psRB.executeUpdate();
@@ -114,7 +111,7 @@ public class ReturningReceiptDAO extends DAO {
             for (BookDamage bd : listBD) {
                 PreparedStatement psBD = con.prepareStatement(sqlBD);
                 psBD.setString(1, bd.getNote());
-                psBD.setDate(2, new java.sql.Date(bd.getDetectedDate().getTime()));
+                psBD.setDate(2, new Date(bd.getDetectedDate().getTime()));
                 psBD.setFloat(3, bd.getFineAmount());
                 psBD.setInt(4, bd.getDamage().getId());
                 psBD.setInt(5, bd.getReturnedBook().getId());
@@ -122,11 +119,8 @@ public class ReturningReceiptDAO extends DAO {
             }
             con.commit();
         } catch (Exception e) {
-            try { con.rollback(); } catch (Exception ex) { ex.printStackTrace(); }
-            e.printStackTrace();
-            return false;
-        } finally {
-            try { con.setAutoCommit(true); } catch (Exception e) { e.printStackTrace(); }
+            try { con.rollback(); 
+            } catch (Exception ex) { ex.printStackTrace(); }
         }
         return true;
     }

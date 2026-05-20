@@ -7,6 +7,7 @@ import model.User;
 public class LibrarianHomeFrm extends JFrame implements ActionListener {
     private User user;
     private JButton btnReturnBook;
+    private JButton btnLogout;
     public LibrarianHomeFrm(User user) {
         super("Librarian Home");
         this.user = user;
@@ -32,7 +33,7 @@ public class LibrarianHomeFrm extends JFrame implements ActionListener {
         btnReturnBook.addActionListener(this);
         panel.add(btnReturnBook);
 
-        JButton btnLogout = new JButton("Logout");
+        btnLogout = new JButton("Logout");
         btnLogout.setBounds(180, 150, 140, 30);
         btnLogout.addActionListener(e -> {
             new LoginFrm().setVisible(true);

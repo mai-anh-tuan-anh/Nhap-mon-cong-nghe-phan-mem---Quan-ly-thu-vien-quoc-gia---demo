@@ -1,14 +1,15 @@
 package view;
+import dao.UserDAO;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
-import dao.UserDAO;
 import model.User;
 public class LoginFrm extends JFrame implements ActionListener {
     private JTextField txtUsername;
     private JPasswordField txtPassword;
     private JButton btnLogin;
+    private JButton btnCancel;
     public LoginFrm() {
         super("Librarian Login");
         setSize(400, 300);
@@ -43,7 +44,7 @@ public class LoginFrm extends JFrame implements ActionListener {
         btnLogin.addActionListener(this);
         panel.add(btnLogin);
 
-        JButton btnCancel = new JButton("Cancel");
+        btnCancel = new JButton("Cancel");
         btnCancel.setBounds(200, 180, 100, 30);
         btnCancel.addActionListener(e -> System.exit(0));
         panel.add(btnCancel);
@@ -63,10 +64,10 @@ public class LoginFrm extends JFrame implements ActionListener {
                     (new LibrarianHomeFrm(u)).setVisible(true);
                     this.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Only Librarians can access this module!");
+                    JOptionPane.showMessageDialog(this, "No librarian, No come in");
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Incorrect username or password!");
+                JOptionPane.showMessageDialog(this, "Incorrect username or password");
             }
         }
     }
